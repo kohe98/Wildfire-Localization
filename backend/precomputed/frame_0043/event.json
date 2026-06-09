@@ -1,0 +1,41 @@
+{
+  "camera_image_url": "/precomputed/frame_0043/camera_image.jpg",
+  "projection_image_url": "/precomputed/frame_0043/projection.jpg",
+  "metadata": {
+    "camera_name": "axis-arcadia1",
+    "camera_lat": 34.179,
+    "camera_lon": -118.025,
+    "camera_elev_m": 1788.0,
+    "pan": 40.7,
+    "tilt": 0.79,
+    "zoom": 4.2,
+    "smoke_bbox": {
+      "top_left": [
+        537,
+        485
+      ],
+      "bottom_right": [
+        1031,
+        881
+      ]
+    },
+    "ground_truth": {
+      "fire_lat": 34.18237918949689,
+      "fire_lon": -118.02247438418027
+    }
+  },
+  "render_zoom": 1.4000000000000001,
+  "render_fov_scale": 3.0,
+  "bbox": {
+    "west": -118.0575755759022,
+    "south": 34.15205066475027,
+    "east": -117.9924244240978,
+    "north": 34.205949335249734
+  },
+  "dem_bounds": [
+    -118.07236788859782,
+    34.14006173244108,
+    -117.97761163776767,
+    34.21791447267463
+  ]
+}

@@ -1,0 +1,21 @@
+# generated from data/ by prepare_test_inputs.py
+test_inputs/
+
+# uploaded images from trigger.py
+backend/uploads/
+
+# rendered images from backend
+backend/render/out
+backend/render/compare
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+frontend/node_modules/
+frontend/package-lock.json
+
+# macOS
+.DS_Store

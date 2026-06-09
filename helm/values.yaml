@@ -1,0 +1,32 @@
+components:
+  frontend:
+    enabled: true
+    image:
+      repository: null  # set via --set in CI
+      tag: latest
+      pullPolicy: Always
+    port: 80
+    health: /healthz
+    readinessProbe: null
+    livenessProbe: null
+    ingress:
+      enabled: true
+      url: null  # set via --set in CI
+
+  backend:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: null  # set via --set in CI
+      tag: latest
+      pullPolicy: Always
+    port: 8000
+    health: /healthz
+    extraEnv: {}
+    ingress:
+      enabled: true
+      url: null  # set via --set in CI
+      annotations:
+        nginx.ingress.kubernetes.io/affinity: "cookie"
+        nginx.ingress.kubernetes.io/session-cookie-name: "backend-pod"
+        nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
