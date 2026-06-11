@@ -308,3 +308,54 @@ button.active {
   font-size: 0.85rem;
   margin-top: 0.5rem;
 }
+
+/* ── Manual trigger form (waiting screen) ────────────────────────────────── */
+
+.trigger-toggle { margin-top: 0.5rem; }
+
+.trigger-form {
+  margin-top: 1.2rem;
+  width: 100%;
+  max-width: 640px;
+  text-align: left;
+  background: #181b24;
+  border: 1px solid #2a2d3a;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.trigger-form h3 { font-size: 1.1rem; font-weight: 600; }
+
+.trigger-hint { color: #8a8fa8; font-size: 0.8rem; line-height: 1.5; }
+
+.trigger-form label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; color: #c8cad8; }
+
+.trigger-csv textarea,
+.trigger-field input,
+.trigger-file input[type="file"] {
+  background: #0f1117;
+  border: 1px solid #3a3d4a;
+  border-radius: 6px;
+  color: #e8eaf0;
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 0.45rem 0.6rem;
+}
+
+.trigger-csv textarea { resize: vertical; }
+
+.trigger-csv textarea:focus,
+.trigger-field input:focus { outline: none; border-color: #f97316; }
+
+.trigger-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem 1rem;
+}
+
+.trigger-field .req { color: #f97316; font-style: normal; }
+
+.trigger-form .error { margin-top: 0; }
