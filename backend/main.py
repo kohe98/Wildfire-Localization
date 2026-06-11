@@ -51,12 +51,6 @@ def load_precomputed(frame_id: str) -> dict:
     return ev
 
 
-# Load frame_0014 as the default event on startup so the app is immediately usable.
-try:
-    latest_event = load_precomputed("frame_0014")
-except Exception:
-    pass
-
 # Render at a wider FOV than the actual camera zoom so the projection
 # always contains the terrain visible in the photo, even if pan/tilt are
 # slightly off. Value of 2.0 = double the normal FOV (half the zoom).
