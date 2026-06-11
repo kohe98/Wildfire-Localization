@@ -12,13 +12,171 @@ const DISPLAY_SCALE = 2; // image pixels per display pixel
 
 // ─── Waiting screen ───────────────────────────────────────────────────────────
 
+// Fields in the same order as the camera_parameters.csv columns the tester
+// already has, so a pasted CSV row maps onto them positionally. Each field
+// maps to a key in the metadata JSON the backend's /api/event expects
+// (see prepare_test_inputs.py for the original CSV → metadata mapping).
+const TRIGGER_FIELDS = [
+  { key: "elev",                 label: "Elevation (ft)",            required: true },
+  { key: "x",                    label: "Pan (x)",                   required: true },
+  { key: "y",                    label: "Tilt (y)",                  required: true },
+  { key: "z",                    label: "Zoom (z)",                  required: true },
+  { key: "camera_lon",           label: "Camera lon",                required: true },
+  { key: "camera_lat",           label: "Camera lat",                required: true },
+  { key: "fire_lon",             label: "Fire lon (ground truth)",   required: false },
+  { key: "fire_lat",             label: "Fire lat (ground truth)",   required: false },
+  { key: "smoke_pixel_coord_tl", label: "Smoke bbox top-left (x,y)", required: false },
+  { key: "smoke_pixel_coord_br", label: "Smoke bbox bot-right (x,y)",required: false },
+];
+
+// Parse "(1381,596)" / "1381,596" / "1381 596" → [1381, 596].
+function parsePixel(raw) {
+  if (!raw) return null;
+  const m = String(raw).match(/-?\d+(?:\.\d+)?/g);
+  if (!m || m.length < 2) return null;
+  return [Math.round(+m[0]), Math.round(+m[1])];
+}
+
+// Split a CSV row, respecting double-quotes AND parentheses so the
+// "(x,y)" pixel-coordinate cells don't get split on their inner comma.
+function splitCsvRow(line) {
+  const out = [];
+  let cur = "", inQuote = false, depth = 0;
+  for (const c of line) {
+    if (c === '"') { inQuote = !inQuote; continue; }
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    if (c === "," && !inQuote && depth === 0) { out.push(cur.trim()); cur = ""; }
+    else cur += c;
+  }
+  out.push(cur.trim());
+  return out;
+}
+
+// Build the metadata object /api/event expects from the raw field values.
+function buildTriggerMetadata(vals) {
+  const meta = {
+    camera_name: "external-test",
+    camera_lat: parseFloat(vals.camera_lat),
+    camera_lon: parseFloat(vals.camera_lon),
+    camera_elev_m: parseFloat(vals.elev),  // backend treats this value as feet
+    pan: parseFloat(vals.x),
+    tilt: parseFloat(vals.y),
+    zoom: parseFloat(vals.z),
+  };
+  const tl = parsePixel(vals.smoke_pixel_coord_tl);
+  const br = parsePixel(vals.smoke_pixel_coord_br);
+  if (tl && br) meta.smoke_bbox = { top_left: tl, bottom_right: br };
+  const fireLat = parseFloat(vals.fire_lat), fireLon = parseFloat(vals.fire_lon);
+  if (!isNaN(fireLat) && !isNaN(fireLon)) meta.ground_truth = { fire_lat: fireLat, fire_lon: fireLon };
+  return meta;
+}
+
+function TriggerForm() {
+  const [vals, setVals] = useState(() => Object.fromEntries(TRIGGER_FIELDS.map(f => [f.key, ""])));
+  const [imageFile, setImageFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const setVal = (k, v) => setVals(p => ({ ...p, [k]: v }));
+
+  const fillFromCsv = (text) => {
+    const line = text
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .find(l => l && !/^frame_nr/i.test(l) && !/^elev\s*,/i.test(l));
+    if (!line) return;
+    // Take the last N cells so a full 12-column CSV row (with frame_nr,
+    // camera_name) or a bare 10-column row both line up with our fields.
+    const cells = splitCsvRow(line).slice(-TRIGGER_FIELDS.length);
+    setVals(p => {
+      const next = { ...p };
+      TRIGGER_FIELDS.forEach((f, i) => { if (cells[i] !== undefined) next[f.key] = cells[i]; });
+      return next;
+    });
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setErr(null);
+    if (!imageFile) { setErr("Please choose a camera image."); return; }
+    const missing = TRIGGER_FIELDS.filter(f => f.required && !String(vals[f.key]).trim());
+    if (missing.length) { setErr("Missing required field(s): " + missing.map(f => f.label).join(", ")); return; }
+    setSubmitting(true);  // stays true until the poll loop swaps screens
+    try {
+      const fd = new FormData();
+      fd.append("image", imageFile);
+      fd.append("metadata", JSON.stringify(buildTriggerMetadata(vals)));
+      const res = await fetch(`${API_URL}/api/event`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.detail || `Server error (${res.status})`);
+      }
+      // Success: the App poll loop will detect the new event and advance.
+    } catch (e) {
+      setErr(e.message);
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form className="trigger-form" onSubmit={onSubmit}>
+      <h3>Test your own image</h3>
+      <p className="trigger-hint">
+        Upload a camera frame and its parameters, then hit <strong>Trigger</strong>.
+        First run for a new location downloads elevation data and takes ~10–30&nbsp;s.
+        Elevation source is USGS&nbsp;3DEP — <strong>US locations only</strong>.
+      </p>
+
+      <label className="trigger-file">
+        Camera image
+        <input type="file" accept="image/*"
+          onChange={e => setImageFile(e.target.files?.[0] ?? null)} />
+      </label>
+
+      <label className="trigger-csv">
+        Paste a CSV row (auto-fills the fields below)
+        <textarea
+          rows={2}
+          placeholder="elev,x,y,z,camera_lon,camera_lat,fire_lon,fire_lat,smoke_pixel_coord_tl,smoke_pixel_coord_br"
+          onChange={e => fillFromCsv(e.target.value)}
+        />
+      </label>
+
+      <div className="trigger-grid">
+        {TRIGGER_FIELDS.map(f => (
+          <label key={f.key} className="trigger-field">
+            <span>{f.label}{f.required && <em className="req"> *</em>}</span>
+            <input
+              type="text"
+              value={vals[f.key]}
+              onChange={e => setVal(f.key, e.target.value)}
+            />
+          </label>
+        ))}
+      </div>
+
+      {err && <p className="error">{err}</p>}
+
+      <button type="submit" className="primary" disabled={submitting}>
+        {submitting ? "Triggering… (rendering terrain)" : "Trigger"}
+      </button>
+    </form>
+  );
+}
+
 function WaitingScreen() {
+  const [showForm, setShowForm] = useState(false);
   return (
     <div className="screen waiting-screen">
       <div className="waiting-icon">🔥</div>
       <h1>Waiting for fire event</h1>
       <p>The system will update automatically when smoke is detected.</p>
       <div className="spinner" />
+      <button className="trigger-toggle" onClick={() => setShowForm(s => !s)}>
+        {showForm ? "Hide manual test" : "Test your own image"}
+      </button>
+      {showForm && <TriggerForm />}
     </div>
   );
 }

@@ -15,7 +15,7 @@ The system renders what the terrain should look like from the camera's perspecti
 
 ```bash
 git clone <repository-url>
-cd Bicycle
+cd Wildfire-Localization
 ```
 
 ### 2. Create a Python virtual environment and install dependencies
@@ -89,6 +89,31 @@ Available test frames: `frame_0014`, `frame_0043`, `frame_0052`, `frame_0238`, `
 3. Use the **Scale** and **Rotation** sliders to fine-tune the fit.
 4. Click **Mark Smoke**, then click on the smoke in the image.
 5. Click **Calculate Location**. The backend ray-casts through the marked pixel and returns GPS coordinates as well as a brids-eye view of the terrain. If ground-truth data is available, the error distance is shown.
+
+### Testing your own image (no terminal needed)
+
+The waiting screen has a **Test your own image** panel so an external tester can run a custom frame entirely from the browser — no `trigger.py` and no terminal required. It posts to the same `POST /api/event` endpoint that `trigger.py` uses, so the result flows into the usual alignment and results screens.
+
+1. On the waiting screen, click **Test your own image**.
+2. Choose a camera image.
+3. Enter the camera parameters. You can fill the fields individually, or **paste a CSV row** from `camera_parameters.csv` into the paste box to auto-fill them — for example:
+   ```
+   1788,30.39,0.99,4.2,-118.0255917,34.179723,-118.016569,34.188404,"(1381,596)","(1877,937)"
+   ```
+   The paste box accepts both a bare 10-column row (`elev` … `smoke_pixel_coord_br`) and a full row that also includes the leading `frame_nr,camera_name` columns.
+4. Click **Trigger**. The first run for a new location downloads elevation data and takes ~10–30 seconds (the button shows progress).
+
+| Field | Maps to | Required |
+|---|---|---|
+| `elev` | camera elevation (feet) | yes |
+| `x` | pan | yes |
+| `y` | tilt | yes |
+| `z` | zoom | yes |
+| `camera_lon`, `camera_lat` | camera GPS position | yes |
+| `fire_lon`, `fire_lat` | ground-truth fire location (enables the error distance) | optional |
+| `smoke_pixel_coord_tl`, `smoke_pixel_coord_br` | smoke bounding box, as `(x,y)` pixel coords | optional |
+
+> **Note:** The elevation source (USGS 3DEP) covers the **United States only**, so a camera location outside the US will fail to render. On the deployed app a demo frame auto-loads on startup, so the waiting screen is skipped — reach this panel via the **New Event** button on the results screen.
 
 ## Implementation Details
 
