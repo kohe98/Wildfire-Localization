@@ -51,7 +51,8 @@ with open(CSV_PATH, newline="") as f:
             "camera_lon": float(row["camera_lon"]),
             "camera_elev_m": float(row["elev"]),
             "pan": float(row["x"]),
-            "tilt": float(row["y"]),
+            # ALERT CSV uses +y = down; renderer uses -tilt = down, so negate
+            "tilt": -float(row["y"]),
             "zoom": float(row["z"]),
             "smoke_bbox": {
                 "top_left": parse_pixel_coord(row["smoke_pixel_coord_tl"]),
