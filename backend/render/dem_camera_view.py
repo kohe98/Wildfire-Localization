@@ -5,7 +5,7 @@ Elevation Model), given:
     - camera GPS position (lat, lon)
     - camera elevation above sea level (feet, as in ALERT California overlay)
     - pan  (deg, compass bearing, 0 = N, 90 = E)
-    - tilt (deg, positive = looking down)
+    - tilt (deg, negative = looking down)
     - zoom (×, optical zoom multiplier; 1× = wide, 30× = tele)
 
 Pipeline:
@@ -124,7 +124,7 @@ class Camera:
     lon: float
     alt_m: float                                # camera height above sea level
     pan_deg: float                              # compass bearing, 0 = N, 90 = E
-    tilt_deg: float                             # +ve = looking down
+    tilt_deg: float                             # -ve = looking down
     zoom: float                                 # optical zoom multiplier
     img_w: int    = DEFAULT_IMAGE_W
     img_h: int    = DEFAULT_IMAGE_H
@@ -146,7 +146,7 @@ class Camera:
         p, t = math.radians(self.pan_deg), math.radians(self.tilt_deg)
         fwd = np.array([math.sin(p) * math.cos(t),
                         math.cos(p) * math.cos(t),
-                        -math.sin(t)])
+                        math.sin(t)])  # -ve tilt = looking down
         world_up = np.array([0.0, 0.0, 1.0])
         right = np.cross(fwd, world_up)
         nr = np.linalg.norm(right)
@@ -400,7 +400,8 @@ def camera_from_csv_row(row, **kwargs) -> Camera:
         lon      = float(row["camera_lon"]),
         alt_m    = float(row["elev"]) * FT_TO_M,
         pan_deg  = float(row["x"]),
-        tilt_deg = float(row["y"]),
+        # ALERT CSV uses +y = down; renderer now uses -tilt = down, so negate
+        tilt_deg = -float(row["y"]),
         zoom     = float(row["z"]),
         **kwargs,
     )

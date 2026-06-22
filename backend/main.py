@@ -315,8 +315,8 @@ async def receive_event(
         zoom=render_zoom,
     )
 
-    west, south, east, north = bbox_around(cam.lat, cam.lon, half_extent_km=3.0)
-    dem_elev, dem_bounds = download_dem_py3dep(west, south, east, north, resolution_m=10)
+    west, south, east, north = bbox_around(cam.lat, cam.lon, half_extent_km=6.0)
+    dem_elev, dem_bounds = download_dem_py3dep(west, south, east, north, resolution_m=30)
 
     img_array, _ = render_camera_view(
         cam, dem_elev, dem_bounds,
